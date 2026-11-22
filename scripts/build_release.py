@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_EXTENSIONS = {".php", ".css", ".js", ".svg", ".ico", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".json", ".mp3", ".html"}
 FORBIDDEN_PARTS = {"lab", "tests", "database", ".git", "node_modules", "__pycache__"}
-FORBIDDEN_NAMES = {"config.local.php", "config.example.php", ".env", ".env.local", ".DS_Store"}
+FORBIDDEN_NAMES = {"media.local.php", "config.local.php", "config.example.php", ".env", ".env.local", ".DS_Store"}
 REQUIRED_FILES = {"app/bootstrap.php", "public_html/index.php", "public_html/z1/index.php"}
 
 

@@ -62,7 +62,7 @@ def read_release(archive: Path) -> tuple[str, list[tuple[str, bytes]]]:
                 raise ValueError(f"Unsafe archive path: {name}")
             if path.as_posix() != name or any(not re.fullmatch(r"[A-Za-z0-9._-]+", part) or part in {".", ".."} for part in path.parts):
                 raise ValueError(f"Unsupported archive path: {name}")
-            if any(part in {"lab", "tests", "database", ".git"} or part.startswith(".env") for part in path.parts) or path.name in {"config.local.php", "config.example.php"}:
+            if any(part in {"lab", "tests", "database", ".git"} or part.startswith(".env") for part in path.parts) or path.name in {"media.local.php", "config.local.php", "config.example.php"}:
                 raise ValueError(f"Private or laboratory file in release: {name}")
             allowed = path.name == ".htaccess" or (path.suffix == ".php" if path.parts[0] == "app" else path.suffix in PUBLIC_EXTENSIONS)
             if not allowed:

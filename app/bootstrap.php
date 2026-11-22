@@ -24,6 +24,16 @@ if (is_file($configPath)) {
         throw new RuntimeException('Invalid application configuration.');
     }
 }
+$supplementPath = __DIR__ . '/media.local.php';
+if (is_file($supplementPath)) {
+    $supplement = require $supplementPath;
+    if (!is_array($supplement)) throw new RuntimeException('Invalid supplemental configuration.');
+    $allowed = ['APP_SHARE_LEGACY_DB'];
+    foreach (['Z6A', 'Z6B'] as $taskName) {
+        foreach (['HOST', 'PORT', 'NAME', 'USER', 'PASSWORD'] as $field) $allowed[] = 'DB_' . $taskName . '_' . $field;
+    }
+    $fileConfig = array_replace($fileConfig, array_intersect_key($supplement, array_fill_keys($allowed, true)));
+}
 $GLOBALS['app_config'] = $fileConfig;
 
 function config(string $name, string $default = ''): string
@@ -39,7 +49,13 @@ function config(string $name, string $default = ''): string
 function app_task(): string
 {
     $path = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
-    return preg_match('~^/(z[1-5]|z6a|z6b)(?:/|$)~D', $path, $match) === 1 ? $match[1] : 'z1';
+    $task = preg_match('~^/(z[1-5]|z6a|z6b)(?:/|$)~D', $path, $match) === 1 ? $match[1] : 'z1';
+    return config('APP_SHARE_LEGACY_DB') === '1' && in_array($task, ['z1', 'z2', 'z3', 'z4', 'z5'], true) ? 'z1' : $task;
+}
+
+function app_shared_legacy(): bool
+{
+    return config('APP_SHARE_LEGACY_DB') === '1' && app_task() === 'z1';
 }
 
 function app_session_name(): string
@@ -50,7 +66,7 @@ function app_session_name(): string
 
 function app_session_path(): string
 {
-    return '/' . app_task() . '/';
+    return app_shared_legacy() ? '/' : '/' . app_task() . '/';
 }
 
 function database_config(string $field, string $default = ''): string
@@ -126,7 +142,7 @@ function start_app_session(): void
     if (isset($_SESSION['task']) && $_SESSION['task'] !== $task) {
         $_SESSION = [];
         session_regenerate_id(false);
-    } elseif (isset($_SESSION['loggedin']) && !isset($_SESSION['task'])) {
+    } elseif (isset($_SESSION['loggedin']) && !isset($_SESSION['task']) && !app_shared_legacy()) {
         $_SESSION = [];
         session_regenerate_id(false);
     }

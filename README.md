@@ -1,6 +1,6 @@
 # PAS labs
 
-PHP and MySQL exercises with a Bootstrap interface. There is one database and one login session per task.
+PHP and MySQL exercises with a Bootstrap interface. By default, there is one database and one login session per task. Hosted installations can retain the shared z1–z5 database; see [database configuration](docs/DATABASES.md).
 
 | Task | Application |
 | --- | --- |
@@ -32,17 +32,3 @@ A playlist starts with a click and plays the remaining items in order. The apps 
 | --- | --- | --- | --- |
 | MySpotify | `song` | `musictype` | `storage/songs` |
 | MyNetflix | `film` | `filmtype` | `storage/films` |
-
-Run the regression checks against the local stack:
-
-```sh
-python3 tests/smoke.py
-python3 tests/z2_smoke.py
-python3 tests/z3_smoke.py
-python3 tests/z4_smoke.py
-python3 tests/z5_smoke.py
-python3 tests/z6_smoke.py
-python3 tests/z6_player.py
-```
-
-The media checks use `ffmpeg` to generate their own short test files. The player state checks also use Node.js.
