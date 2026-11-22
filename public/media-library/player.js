@@ -98,6 +98,7 @@
                 text.textContent = typeof track.lyrics === 'string' ? track.lyrics : '';
                 text.hidden = !text.textContent;
             }
+            for (const caption of Array.from(media.textTracks || [])) caption.mode = 'disabled';
             for (const caption of Array.from(media.querySelectorAll('track'))) caption.remove();
             const subtitle = localUrl(track.subtitleUrl);
             if (media.tagName.toLowerCase() === 'video' && subtitle) {
