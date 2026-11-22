@@ -1,0 +1,8 @@
+DirectoryIndex index.php
+Options -Indexes
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^dalke-124382\.hox\.pl$ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://dalke-124382.hox.pl%{REQUEST_URI} [R=302,L]
+</IfModule>

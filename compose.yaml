@@ -1,0 +1,54 @@
+name: dalke-pas-z1
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php.Dockerfile
+    environment:
+      APP_ENV: local
+      APP_TRUST_PROXY: "1"
+      DB_HOST: db
+      DB_NAME: z1
+      DB_USER: z1
+      DB_PASSWORD: local-only-z1
+      CLOUD_STORAGE_ROOT: /var/www/html/storage/z5
+    volumes:
+      - ./public:/var/www/html/public:ro
+      - ./app:/var/www/html/app:ro
+      - cloud-storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [secure]
+  gateway:
+    image: nginx:1.28-alpine
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - ./docker/nginx-secure.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+    networks: [secure, ingress]
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: z1
+      MYSQL_USER: z1
+      MYSQL_PASSWORD: local-only-z1
+      MYSQL_ROOT_PASSWORD: local-only-root
+    volumes:
+      - secure-db:/var/lib/mysql
+      - ./database:/database:ro
+      - ./database/init-local.sh:/docker-entrypoint-initdb.d/01-init-local.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=tcp -h 127.0.0.1 -u $$MYSQL_USER -D $$MYSQL_DATABASE -e 'SELECT 1 FROM users LIMIT 1' >/dev/null"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [secure]
+networks:
+  ingress:
+  secure:
+    internal: true
+volumes:
+  secure-db:
+  cloud-storage:

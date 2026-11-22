@@ -1,0 +1,3 @@
+.z4-state-pulse { animation: z4-pulse 1s ease-in-out infinite; }
+@keyframes z4-pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .z4-state-pulse { animation: none; } }

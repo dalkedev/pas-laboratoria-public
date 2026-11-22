@@ -1,0 +1,64 @@
+name: Test PHP labs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pas-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Deployment package security checks
+        run: python3 -m unittest discover -s tests -p test_release.py -v
+      - name: Start isolated MySQL and PHP environments
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: PHP syntax
+        run: |
+          docker compose exec -T app sh -c 'find /var/www/html/app /var/www/html/public -name "*.php" -print0 | xargs -0 -r -n1 php -l'
+      - name: Secure authentication and session tests
+        run: python3 tests/smoke.py --base-url http://127.0.0.1:8081
+      - name: Bootstrap authentication and avatar tests
+        run: python3 tests/z2_smoke.py --base-url http://127.0.0.1:8081
+      - name: Geolocation and visitor logging tests
+        run: python3 tests/z3_smoke.py --base-url http://127.0.0.1:8081
+      - name: Per-user service monitoring tests
+        run: python3 tests/z4_smoke.py --base-url http://127.0.0.1:8081
+      - name: Private cloud file tests
+        run: python3 tests/z5_smoke.py --base-url http://127.0.0.1:8081
+      - name: Prepare media test fixtures
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Music and video libraries
+        run: |
+          python3 tests/z6_smoke.py
+          python3 tests/z6_player.py
+      - name: Build allowlisted production package
+        run: |
+          python3 scripts/build_release.py --version "$GITHUB_SHA" --output work/release
+          python3 scripts/deploy_ftps.py work/release/release.zip --dry-run
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: tested-release-${{ github.sha }}
+          path: work/release/release.zip
+          retention-days: 14
+          if-no-files-found: error
+      - name: Service diagnostics on failure
+        if: failure()
+        run: docker compose logs --tail=100
+      - name: Remove test environments
+        if: always()
+        run: docker compose down -v

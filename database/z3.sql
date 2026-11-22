@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS goscieportalu (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  ipaddress VARCHAR(45) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  user_agent VARCHAR(512) NOT NULL DEFAULT '',
+  browser VARCHAR(128) NOT NULL DEFAULT '',
+  screen_width SMALLINT UNSIGNED DEFAULT NULL,
+  screen_height SMALLINT UNSIGNED DEFAULT NULL,
+  viewport_width SMALLINT UNSIGNED DEFAULT NULL,
+  viewport_height SMALLINT UNSIGNED DEFAULT NULL,
+  colors TINYINT UNSIGNED DEFAULT NULL,
+  cookies_enabled TINYINT UNSIGNED DEFAULT NULL,
+  java_enabled TINYINT UNSIGNED DEFAULT NULL,
+  language VARCHAR(35) DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY goscie_datetime (datetime, id),
+  KEY goscie_ipaddress (ipaddress)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_polish_ci;
