@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/avatar.php';
 header("Content-Security-Policy: default-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");
 
 function z2_require_https(): void
@@ -86,61 +87,10 @@ function z2_registration_form(string $error = '', string $username = ''): void
 
 function z2_avatar_upload(): ?string
 {
-    $file = $_FILES['avatar'] ?? null;
-    if ($file === null || (is_array($file) && ($file['error'] ?? null) === UPLOAD_ERR_NO_FILE)) {
-        return null;
-    }
-    if (!is_array($file) || ($file['error'] ?? null) !== UPLOAD_ERR_OK || !is_string($file['tmp_name'] ?? null)) {
-        throw new InvalidArgumentException('nieprawidłowy avatar.');
-    }
-    $path = $file['tmp_name'];
-    if (!is_uploaded_file($path)) {
-        throw new InvalidArgumentException('nieprawidłowy avatar.');
-    }
-    $size = filesize($path);
-    if ($size === false || $size < 1 || $size > 2 * 1024 * 1024) {
-        throw new InvalidArgumentException('avatar: maksymalnie 2 mib.');
-    }
-    $contents = file_get_contents($path);
-    if ($contents === false) {
-        throw new InvalidArgumentException('nieprawidłowy avatar.');
-    }
-    $info = @getimagesizefromstring($contents);
-    if ($info === false || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true)) {
-        throw new InvalidArgumentException('avatar: jpg lub png.');
-    }
-    if ($info[0] < 1 || $info[1] < 1 || $info[0] > 2000 || $info[1] > 2000) {
-        throw new InvalidArgumentException('avatar: maksymalnie 2000 x 2000.');
-    }
-    $image = @imagecreatefromstring($contents);
-    if ($image === false) {
-        throw new InvalidArgumentException('nieprawidłowy avatar.');
-    }
-    try {
-        imagepalettetotruecolor($image);
-        imagealphablending($image, false);
-        imagesavealpha($image, true);
-        $width = imagesx($image);
-        $height = imagesy($image);
-        if (max($width, $height) > 256) {
-            $ratio = 256 / max($width, $height);
-            $scaled = imagescale($image, max(1, (int) floor($width * $ratio)), max(1, (int) floor($height * $ratio)));
-            if ($scaled === false) {
-                throw new InvalidArgumentException('nieprawidłowy avatar.');
-            }
-            imagedestroy($image);
-            $image = $scaled;
-            imagealphablending($image, false);
-            imagesavealpha($image, true);
-        }
-        ob_start();
-        $encoded = imagepng($image, null, 6);
-        $png = ob_get_clean();
-        if (!$encoded || !is_string($png) || strlen($png) > 2 * 1024 * 1024) {
-            throw new InvalidArgumentException('nieprawidłowy avatar.');
-        }
-        return $png;
-    } finally {
-        imagedestroy($image);
-    }
+    return avatar_upload([
+        'invalid' => 'nieprawidłowy avatar.',
+        'size' => 'avatar: maksymalnie 2 mib.',
+        'format' => 'avatar: jpg lub png.',
+        'dimensions' => 'avatar: maksymalnie 2000 x 2000.',
+    ]);
 }

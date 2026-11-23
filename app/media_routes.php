@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/media_storage.php';
+require_once __DIR__ . '/avatar.php';
 
 function media_route_login(): void
 {
@@ -41,20 +42,39 @@ function media_route_add(): void
     $username = post_string('user');
     $password = post_string('pass');
     $error = '';
+    $avatar = null;
     if (!preg_match('/^[A-Za-z0-9_.-]{3,128}$/D', $username)) $error = 'Username must contain 3 to 128 letters, digits, dots, underscores or hyphens.';
     elseif ($password === '' || strlen($password) > 72 || preg_match('//u', $password) !== 1 || str_contains($password, "\0")) $error = 'Invalid password.';
     elseif (!hash_equals($password, post_string('pass_repeat'))) $error = 'Passwords do not match.';
+    else {
+        try {
+            $avatar = avatar_upload();
+        } catch (InvalidArgumentException $exception) {
+            $error = $exception->getMessage();
+        }
+    }
     if ($error !== '') {
         throttle_failure('registration');
         http_response_code(422);
         media_auth_form(true, $error, media_clip($username, 128));
         return;
     }
+    $pdo = db();
+    $pdo->beginTransaction();
     try {
-        $stmt = db()->prepare('INSERT INTO users (username,password) VALUES (?,?)');
+        $stmt = $pdo->prepare('INSERT INTO users (username,password) VALUES (?,?)');
         $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
-    } catch (PDOException $error) {
-        if ($error->getCode() !== '23000') throw $error;
+        if ($avatar !== null) {
+            $userId = (int) $pdo->lastInsertId();
+            $stmt = $pdo->prepare('INSERT INTO user_avatars (user_id,image) VALUES (?,?)');
+            $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+            $stmt->bindValue(2, $avatar, PDO::PARAM_LOB);
+            $stmt->execute();
+        }
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if (!$exception instanceof PDOException || ($exception->errorInfo[1] ?? null) !== 1062) throw $exception;
         throttle_failure('registration');
         http_response_code(409);
         media_auth_form(true, 'Choose a different username.', $username);
@@ -62,6 +82,18 @@ function media_route_add(): void
     }
     throttle_failure('registration');
     redirect(media_url('login.php', ['registered' => 1]));
+}
+
+function media_route_avatar(): void
+{
+    media_require_login();
+    $stmt = db()->prepare('SELECT image FROM user_avatars WHERE user_id=?');
+    $stmt->execute([(int) $_SESSION['user_id']]);
+    $avatar = $stmt->fetchColumn();
+    if ($avatar === false) redirect('/z2/media/default-avatar.svg');
+    header('Content-Type: image/png');
+    header('Content-Length: ' . strlen($avatar));
+    echo $avatar;
 }
 
 function media_route_logout(): void
